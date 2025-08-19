@@ -15,17 +15,86 @@ const server = new McpServer({
   },
 });
 
-// Add an addition tool
-server.registerTool("add",
+// Study plan generator tool
+server.registerTool("generateStudyPlan",
   {
-    title: "Addition Tool",
-    description: "Add two numbers",
-    inputSchema: { a: z.number(), b: z.number() }
+    title: "Study Plan Generator",
+    description: "Generate a personalized study plan based on role and existing concepts",
+    inputSchema: {
+      role: z.enum(["frontend", "backend", "fullstack", "devops", "ml-engineer"]),
+      weeksDuration: z.number().min(1).max(52),
+      focusAreas: z.array(z.string()).min(1).max(5)
+    }
   },
-  async ({ a, b }) => ({
-    content: [{ type: "text", text: String(a + b) }]
-  })
+  async ({ role, weeksDuration, focusAreas }) => {
+    try {
+      // Read concepts first
+      const conceptsPath = path.join(__dirname, 'concepts.md');
+      const studyPlanPath = path.join(__dirname, 'study-plan.md');
+      
+      // Safely read files within src directory only
+      if (!conceptsPath.startsWith(__dirname) || !studyPlanPath.startsWith(__dirname)) {
+        throw new Error("Access denied: Can only access files in src directory");
+      }
+
+      const conceptsContent = await fs.readFile(conceptsPath, 'utf-8');
+      
+      // Generate study plan content
+      const studyPlanContent = `# Study Plan for ${role.toUpperCase()} Developer
+Generated on: ${new Date().toISOString().split('T')[0]}
+Duration: ${weeksDuration} weeks
+
+## Focus Areas
+${focusAreas.map(area => `- ${area}`).join('\n')}
+
+## Weekly Breakdown
+${generateWeeklyPlan(conceptsContent, role, weeksDuration, focusAreas)}
+
+## Resources
+- Concepts from concepts.md
+- Industry best practices
+- Hands-on projects
+`;
+
+      // Write to study plan file
+      await fs.writeFile(studyPlanPath, studyPlanContent, 'utf-8');
+
+      return {
+        content: [{ 
+          type: "text", 
+          text: `Study plan generated successfully! Check study-plan.md for details.
+Preview:
+${studyPlanContent.slice(0, 500)}...` 
+        }]
+      };
+    } catch (error) {
+      console.error('Error in study plan generation:', error);
+      return {
+        content: [{ 
+          type: "text", 
+          text: `Error generating study plan: ${error.message}` 
+        }]
+      };
+    }
+  }
 );
+
+// Helper function to generate weekly plan
+function generateWeeklyPlan(concepts: string, role: string, weeks: number, focusAreas: string[]): string {
+  const lines = concepts.split('\n');
+  const relevantConcepts = lines
+    .filter(line => line.startsWith('##') && 
+      focusAreas.some(area => line.toLowerCase().includes(area.toLowerCase())));
+
+  let plan = '';
+  for (let week = 1; week <= weeks; week++) {
+    const conceptIndex = (week - 1) % relevantConcepts.length;
+    plan += `\nWeek ${week}:\n`;
+    plan += `- Focus: ${relevantConcepts[conceptIndex]?.replace('##', '').trim() || 'Review and Practice'}\n`;
+    plan += `- Practice exercises\n- Project work\n`;
+  }
+  return plan;
+}
 
 // Add a dynamic greeting resource
 server.registerResource(
