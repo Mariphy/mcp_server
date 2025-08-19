@@ -163,7 +163,8 @@ server.registerResource(
   },
   async (uri) => {
     try {
-      const conceptsPath = path.join(__dirname, 'concepts.md');
+      const projectRoot = path.join(__dirname, '..');
+      const conceptsPath = path.join(projectRoot, 'src', 'concepts.md');
       const content = await fs.readFile(conceptsPath, 'utf-8');
       return {
         contents: [{
@@ -194,7 +195,8 @@ server.registerResource(
   },
   async (uri) => {
     try {
-      const studyPlanPath = path.join(__dirname, 'study-plan.md');
+      const projectRoot = path.join(__dirname, '..');
+      const studyPlanPath = path.join(projectRoot, 'src', 'study-plan.md');
       const content = await fs.readFile(studyPlanPath, 'utf-8');
       return {
         contents: [{
