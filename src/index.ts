@@ -2,6 +2,9 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
 // Create an MCP server
 const server = new McpServer({
   name: "demo-server",
@@ -38,6 +41,37 @@ server.registerResource(
       text: `Hello, ${name}!`
     }]
   })
+);
+
+// Concepts resource
+server.registerResource(
+  "concepts",
+  "concepts://src",
+  {
+    title: "Software Engineering Concepts",
+    description: "List of software engineering concepts and explanations",
+    mimeType: "text/markdown"
+  },
+  async (uri) => {
+    try {
+      const conceptsPath = path.join(__dirname, 'concepts.md');
+      const content = await fs.readFile(conceptsPath, 'utf-8');
+      return {
+        contents: [{
+          uri: uri.href,
+          text: content
+        }]
+      };
+    } catch (error) {
+      console.error('Error reading concepts.md:', error);
+      return {
+        contents: [{
+          uri: uri.href,
+          text: '# Software Engineering Concepts\n\nNo concepts available yet.'
+        }]
+      };
+    }
+  }
 );
 
 // Start receiving messages on stdin and sending messages on stdout
