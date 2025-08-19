@@ -33,12 +33,26 @@ server.registerTool("generateStudyPlan",
   },
   async ({ role, weeksDuration, focusAreas }) => {
     try {
+      console.error('Debug: Starting plan generation with:', {
+        role,
+        weeksDuration,
+        focusAreas,
+        __dirname
+      });
+
       // Read concepts first
-      const conceptsPath = path.join(__dirname, 'concepts.md');
-      const studyPlanPath = path.join(__dirname, 'study-plan.md');
+      const projectRoot = path.join(__dirname, '..');
+      const conceptsPath = path.join(projectRoot, 'src', 'concepts.md');
+      const studyPlanPath = path.join(projectRoot, 'src', 'study-plan.md');
+      
+      console.error('Debug: File paths:', {
+        conceptsPath,
+        studyPlanPath
+      });
       
       // Safely read files within src directory only
-      if (!conceptsPath.startsWith(__dirname) || !studyPlanPath.startsWith(__dirname)) {
+      const srcDir = path.join(projectRoot, 'src');
+      if (!conceptsPath.startsWith(srcDir) || !studyPlanPath.startsWith(srcDir)) {
         throw new Error("Access denied: Can only access files in src directory");
       }
 
@@ -72,12 +86,13 @@ server.registerTool("generateStudyPlan",
             ${studyPlanContent.slice(0, 500)}...` 
         }]
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error in study plan generation:', error);
       return {
         content: [{ 
           type: "text", 
-          text: "Error generating study plan" 
+          text: `Error generating study plan: ${errorMessage}\nPlease check the server logs for more details.` 
         }]
       };
     }
@@ -87,16 +102,36 @@ server.registerTool("generateStudyPlan",
 // Helper function to generate weekly plan
 function generateWeeklyPlan(concepts: string, role: string, weeks: number, focusAreas: string[]): string {
   const lines = concepts.split('\n');
+  // Look for lines starting with "KA" and filter by focus areas
   const relevantConcepts = lines
-    .filter(line => line.startsWith('##') && 
+    .filter(line => line.match(/^KA\s*\d+\s*-/) && 
       focusAreas.some(area => line.toLowerCase().includes(area.toLowerCase())));
+
+  if (relevantConcepts.length === 0) {
+    const availableTopics = lines
+      .filter(line => line.match(/^KA\s*\d+\s*-/))
+      .map(line => {
+        const parts = line.split(':');
+        return parts[0]?.trim() ?? line.trim();
+      })
+      .join(', ');
+
+    throw new Error(`No concepts found matching focus areas: ${focusAreas.join(', ')}. 
+Available topics: ${availableTopics}`);
+  }
 
   let plan = '';
   for (let week = 1; week <= weeks; week++) {
     const conceptIndex = (week - 1) % relevantConcepts.length;
+    const concept = relevantConcepts[conceptIndex] || '';
+    const parts = concept.split(':');
+    const conceptTitle = parts[0]?.replace(/^KA\s*\d+\s*-\s*/, '').trim() ?? 'Review and Practice';
+    
     plan += `\nWeek ${week}:\n`;
-    plan += `- Focus: ${relevantConcepts[conceptIndex]?.replace('##', '').trim() || 'Review and Practice'}\n`;
-    plan += `- Practice exercises\n- Project work\n`;
+    plan += `- Focus: ${conceptTitle}\n`;
+    plan += `- Study the concept in depth\n`;
+    plan += `- Complete practice exercises\n`;
+    plan += `- Work on ${role}-specific implementation\n`;
   }
   return plan;
 }
@@ -142,6 +177,37 @@ server.registerResource(
         contents: [{
           uri: uri.href,
           text: '# Software Engineering Concepts\n\nNo concepts available yet.'
+        }]
+      };
+    }
+  }
+);
+
+// Study plan resource
+server.registerResource(
+  "study-plan",
+  "study-plan://src",
+  {
+    title: "Software Engineering Study Plan",
+    description: "Personalized study plan for software engineering roles",
+    mimeType: "text/markdown"
+  },
+  async (uri) => {
+    try {
+      const studyPlanPath = path.join(__dirname, 'study-plan.md');
+      const content = await fs.readFile(studyPlanPath, 'utf-8');
+      return {
+        contents: [{
+          uri: uri.href,
+          text: content
+        }]
+      };
+    } catch (error) {
+      console.error('Error reading study-plan.md:', error);
+      return {
+        contents: [{
+          uri: uri.href,
+          text: '# Software Engineering Study Plan\n\nNo study plan available yet.'
         }]
       };
     }
