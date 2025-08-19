@@ -5,7 +5,11 @@ import { z } from "zod";
 // Create an MCP server
 const server = new McpServer({
   name: "demo-server",
-  version: "1.0.0"
+  version: "1.0.0",
+  capabilities: {
+    resources: {},
+    tools: {},
+  },
 });
 
 // Add an addition tool
@@ -37,6 +41,13 @@ server.registerResource(
 );
 
 // Start receiving messages on stdin and sending messages on stdout
-const transport = new StdioServerTransport();
-await server.connect(transport);
-console.log("Server started");
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("Weather MCP Server running on stdio");
+}
+
+main().catch((error) => {
+  console.error("Fatal error in main():", error);
+  process.exit(1);
+});
