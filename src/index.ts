@@ -72,7 +72,7 @@ ${studyPlanContent.slice(0, 500)}...`
       return {
         content: [{ 
           type: "text", 
-          text: `Error generating study plan: ${error.message}` 
+          text: "Error generating study plan" 
         }]
       };
     }
