@@ -41,20 +41,20 @@ server.registerTool("generateStudyPlan",
       
       // Generate study plan content
       const studyPlanContent = `# Study Plan for ${role.toUpperCase()} Developer
-Generated on: ${new Date().toISOString().split('T')[0]}
-Duration: ${weeksDuration} weeks
+        Generated on: ${new Date().toISOString().split('T')[0]}
+        Duration: ${weeksDuration} weeks
 
-## Focus Areas
-${focusAreas.map(area => `- ${area}`).join('\n')}
+        ## Focus Areas
+        ${focusAreas.map(area => `- ${area}`).join('\n')}
 
-## Weekly Breakdown
-${generateWeeklyPlan(conceptsContent, role, weeksDuration, focusAreas)}
+        ## Weekly Breakdown
+        ${generateWeeklyPlan(conceptsContent, role, weeksDuration, focusAreas)}
 
-## Resources
-- Concepts from concepts.md
-- Industry best practices
-- Hands-on projects
-`;
+        ## Resources
+        - Concepts from concepts.md
+        - Industry best practices
+        - Hands-on projects
+        `;
 
       // Write to study plan file
       await fs.writeFile(studyPlanPath, studyPlanContent, 'utf-8');
@@ -63,8 +63,8 @@ ${generateWeeklyPlan(conceptsContent, role, weeksDuration, focusAreas)}
         content: [{ 
           type: "text", 
           text: `Study plan generated successfully! Check study-plan.md for details.
-Preview:
-${studyPlanContent.slice(0, 500)}...` 
+            Preview:
+            ${studyPlanContent.slice(0, 500)}...` 
         }]
       };
     } catch (error) {
